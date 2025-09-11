@@ -13,7 +13,7 @@ import warnings
 import scipp as sc
 from numpy.testing import assert_almost_equal
 from pymatgen.io.vasp import Xdatcar
-from pymatgen.io.ase import AseAtomsAdaptor # To test ASE objects using one single file.
+from pymatgen.io.ase import AseAtomsAdaptor
 from scipp.testing import assert_allclose
 
 import kinisi
@@ -68,7 +68,6 @@ class TestJumpDiffusionAnalyzer(unittest.TestCase):
             assert_allclose(a.dt, a.da.coords['time interval'])
             assert_almost_equal(a.mstd.values, a.da.values)
             assert_almost_equal(a.mstd.variances, a.da.variances)
-            # Test from_ase()
             a_ase = JumpDiffusionAnalyzer.from_ase(ase_traj, **da_params)
             assert_allclose(a_ase.dt, a_ase.da.coords['time interval'])
             assert_almost_equal(a_ase.mstd.values, a_ase.da.values)
