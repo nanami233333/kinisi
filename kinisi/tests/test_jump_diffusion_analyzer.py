@@ -12,8 +12,8 @@ import warnings
 
 import scipp as sc
 from numpy.testing import assert_almost_equal
-from pymatgen.io.vasp import Xdatcar
 from pymatgen.io.ase import AseAtomsAdaptor
+from pymatgen.io.vasp import Xdatcar
 from scipp.testing import assert_allclose
 
 import kinisi
