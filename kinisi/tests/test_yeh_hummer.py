@@ -5,6 +5,7 @@ Tests for the YehHummer finite-size correction module.
 import numpy as np
 import pytest
 import scipp as sc
+
 from kinisi.yeh_hummer import YehHummer, yeh_hummer_linear
 
 
@@ -71,6 +72,7 @@ class TestYehHummer:
 
         # Check that we get Samples objects
         from kinisi.samples import Samples
+
         assert isinstance(yh.D_infinite, Samples)
         assert isinstance(yh.shear_viscosity, Samples)
 
@@ -93,7 +95,7 @@ class TestYehHummer:
         # Custom bounds
         bounds = (
             (4e-5 * sc.Unit('cm^2/s'), 7e-5 * sc.Unit('cm^2/s')),  # D_0 bounds
-            (1e-4 * sc.Unit('Pa*s'), 1e-2 * sc.Unit('Pa*s')),      # viscosity bounds
+            (1e-4 * sc.Unit('Pa*s'), 1e-2 * sc.Unit('Pa*s')),  # viscosity bounds
         )
 
         yh = YehHummer(td, temperature=298, bounds=bounds)
