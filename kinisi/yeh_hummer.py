@@ -8,12 +8,12 @@ Based on: Yeh & Hummer, J. Phys. Chem. B 2004, 108, 15873-15879
 import matplotlib.pyplot as plt
 import numpy as np
 import scipp as sc
-from emcee import EnsembleSampler
-from kinisi.samples import Samples
-from scipy.linalg import pinvh
-from scipy.optimize import curve_fit, minimize
-from .due import Doi, due
+from scipy.optimize import curve_fit
+
 from kinisi import __version__
+from kinisi.fitting import FittingBase
+
+from .due import Doi, due
 
 
 def yeh_hummer_linear(inv_L, D_0, slope):
@@ -38,7 +38,7 @@ def yeh_hummer_linear(inv_L, D_0, slope):
     description='Yeh-Hummer finite-size correction.',
     version=__version__,
 )
-class YehHummer:
+class YehHummer(FittingBase):
     """
     Apply Yeh-Hummer finite-size corrections to diffusion coefficients from MD simulations
     with periodic boundary conditions.
@@ -52,7 +52,7 @@ class YehHummer:
     """
 
     def __init__(self, diffusion, temperature=None, bounds=None):
-        # Store diffusion data
+        # Store diffusion data for backward compatibility
         self.diffusion = diffusion
 
         # Extract box lengths from coordinates
@@ -65,30 +65,81 @@ class YehHummer:
         self.xi_cubic = 2.837297  # Ewald constant for cubic boxes
         self.k_B = sc.scalar(value=1.380649e-23, unit='J/K')
 
-        # Initialize data group
-        self.data_group = sc.DataGroup({'data': diffusion})
+        # Set up parameters for YehHummer fitting
+        parameter_names = ('D_0', 'viscosity')
+        parameter_units = (diffusion.unit, sc.Unit('Pa*s'))
 
-        # Set up parameters
-        self.parameter_names = ('D_0', 'viscosity')
-        self.parameter_units = (diffusion.unit, sc.Unit('Pa*s'))
-
-        # Set bounds
-        self.bounds = bounds
-        if self.bounds is None:
+        # Set default bounds if not provided
+        if bounds is None:
             # Auto-generate reasonable bounds
-            D_max = np.max(self.diffusion.values)
-            self.bounds = (
-                (D_max * 0.8 * self.diffusion.unit, D_max * 2.0 * self.diffusion.unit),
+            D_max = np.max(diffusion.values)
+            bounds = (
+                (D_max * 0.8 * diffusion.unit, D_max * 2.0 * diffusion.unit),
                 (1e-5 * sc.Unit('Pa*s'), 1e-1 * sc.Unit('Pa*s')),
             )
 
-        # Convert bounds to values for optimization
-        self.bounds_values = tuple(
-            [(b[0].to(unit=u).value, b[1].to(unit=u).value) for b, u in zip(self.bounds, self.parameter_units)]
+        # Initialize base class with custom function
+        super().__init__(
+            data=diffusion,
+            function=self._yeh_hummer_function,
+            parameter_names=parameter_names,
+            parameter_units=parameter_units,
+            bounds=bounds,
+            coordinate_name='box_length',
         )
 
-        # Fit the data
-        self.max_likelihood()
+        # Convert bounds to values for optimization (for backward compatibility)
+        self.bounds_values = tuple(
+            [
+                (b[0].to(unit=u).value, b[1].to(unit=u).value)
+                for b, u in zip(self.bounds, self.parameter_units, strict=False)
+            ]
+        )
+
+    def _yeh_hummer_function(self, box_lengths, D_0, viscosity):
+        """
+        Yeh-Hummer function adapted for the base class.
+        Takes box_lengths and parameters, returns diffusion coefficients.
+        """
+        # Handle both scalar and array inputs
+        box_lengths = np.asarray(box_lengths)
+        D_0 = np.asarray(D_0)
+        viscosity = np.asarray(viscosity)
+
+        # Convert box lengths to inverse values
+        if box_lengths.ndim == 2:  # For distribution calculations: (n_points, 1)
+            inv_L = 1.0 / box_lengths[:, 0]  # Extract the box lengths
+        else:
+            inv_L = 1.0 / box_lengths
+
+        # Handle viscosity conversion
+        if viscosity.ndim == 1:  # Array of viscosity samples
+            # Convert each viscosity value to slope
+            slopes = []
+            for v in viscosity:
+                eta_with_unit = v * self.parameter_units[1]
+                slope = self._viscosity_to_slope(eta_with_unit)
+                slopes.append(slope)
+            slope = np.array(slopes)
+        else:
+            # Scalar viscosity
+            eta_with_unit = viscosity * self.parameter_units[1]
+            slope = self._viscosity_to_slope(eta_with_unit)
+
+        # Apply linear model
+        if np.isscalar(D_0) and np.isscalar(slope):
+            # Single evaluation
+            return yeh_hummer_linear(inv_L, D_0, slope)
+        else:
+            # Multiple evaluations for distribution
+            if D_0.ndim == 1 and slope.ndim == 1:
+                # D_0 and slope are 1D arrays of samples
+                result = np.zeros((len(inv_L), len(D_0)))
+                for i, (d0, s) in enumerate(zip(D_0, slope, strict=False)):
+                    result[:, i] = yeh_hummer_linear(inv_L, d0, s)
+                return result
+            else:
+                return yeh_hummer_linear(inv_L, D_0, slope)
 
     def _prepare_data_for_fit(self):
         """Prepare data in correct format for fitting."""
@@ -126,46 +177,11 @@ class YehHummer:
         target_unit = self.diffusion.unit * self.box_lengths.unit
         return sc.to_unit(slope, target_unit).value
 
-    def log_likelihood(self, parameters):
-        """Calculate log likelihood for MCMC."""
-        D_0, eta = parameters
-
-        # Convert viscosity to slope
-        eta_with_unit = eta * self.parameter_units[1]
-        slope = self._viscosity_to_slope(eta_with_unit)
-
-        # Get data
-        inv_L, D_values, _ = self._prepare_data_for_fit()
-
-        # Calculate model
-        model = yeh_hummer_linear(inv_L, D_0, slope)
-
-        # Calculate likelihood
-        covariance_matrix = np.diag(self.diffusion.variances)
-
-        if np.any(self.diffusion.variances > 0):
-            _, logdet = np.linalg.slogdet(covariance_matrix)
-            logdet += np.log(2 * np.pi) * D_values.size
-            inv = pinvh(covariance_matrix)
-
-            diff = model - D_values
-            logl = -0.5 * (logdet + np.matmul(diff.T, np.matmul(inv, diff)))
-        else:
-            # No variance info, use simple chi-squared
-            logl = -0.5 * np.sum((model - D_values) ** 2)
-
-        return logl
-
-    def nll(self, parameters):
-        """Negative log likelihood for optimization."""
-        return -self.log_likelihood(parameters)
-
     def max_likelihood(self):
-        """Find maximum likelihood parameters."""
-        # Initial guess
+        """Find maximum likelihood parameters with better initial guess for YehHummer."""
+        # Use linear fit for initial parameters
         inv_L, D_values, D_errors = self._prepare_data_for_fit()
 
-        # Linear fit for initial parameters
         def linear_func(x, a, b):
             return a - b * x
 
@@ -183,63 +199,18 @@ class YehHummer:
         # Convert slope to viscosity
         eta_init = self._slope_to_viscosity(slope_init).value
 
+        # Use these as initial parameters for optimization
         x0 = [D_0_init, eta_init]
 
-        result = minimize(self.nll, x0, bounds=self.bounds_values, method='L-BFGS-B')
+        from scipy.optimize import minimize
+
+        # Convert bounds to format expected by scipy
+        bounds_scipy = [(b[0].value, b[1].value) for b in self.bounds]
+        result = minimize(self.nll, x0, bounds=bounds_scipy, method='L-BFGS-B')
 
         # Store results
         self.data_group['D_0'] = result.x[0] * self.parameter_units[0]
         self.data_group['viscosity'] = result.x[1] * self.parameter_units[1]
-
-    def mcmc(self, n_samples=1000, n_walkers=32, n_burn=500, n_thin=10):
-        """Perform MCMC sampling."""
-        # Get current estimates
-        D_0_value = self.data_group['D_0'].value
-        eta_value = self.data_group['viscosity'].value
-
-        # Set up walkers
-        ndim = 2
-        pos = np.column_stack(
-            [
-                D_0_value + D_0_value * 0.01 * np.random.randn(n_walkers),
-                eta_value + eta_value * 0.01 * np.random.randn(n_walkers),
-            ]
-        )
-
-        # Ensure within bounds
-        for i in range(n_walkers):
-            for j in range(ndim):
-                pos[i, j] = np.clip(pos[i, j], self.bounds_values[j][0], self.bounds_values[j][1])
-
-        # Run MCMC
-        sampler = EnsembleSampler(n_walkers, ndim, self.log_posterior)
-        sampler.run_mcmc(
-            pos,
-            n_samples + n_burn,
-            progress=True,
-            progress_kwargs={'desc': 'MCMC Sampling'},
-        )
-
-        # Extract samples
-        flatchain = sampler.get_chain(discard=n_burn, thin=n_thin, flat=True)
-
-        # Store as Samples
-        self.data_group['D_0'] = Samples(flatchain[:, 0], unit=self.parameter_units[0])
-        self.data_group['viscosity'] = Samples(flatchain[:, 1], unit=self.parameter_units[1])
-
-    def log_prior(self, parameters):
-        """Uniform prior within bounds."""
-        for i, (p, bounds) in enumerate(zip(parameters, self.bounds_values)):
-            if not (bounds[0] <= p <= bounds[1]):
-                return -np.inf
-        return 0.0
-
-    def log_posterior(self, parameters):
-        """Log posterior for MCMC."""
-        lp = self.log_prior(parameters)
-        if not np.isfinite(lp):
-            return -np.inf
-        return lp + self.log_likelihood(parameters)
 
     @property
     def D_infinite(self):
@@ -250,39 +221,6 @@ class YehHummer:
     def shear_viscosity(self):
         """Return estimated shear viscosity."""
         return self.data_group['viscosity']
-
-    @property
-    def distribution(self):
-        """Generate distribution for plotting credible intervals."""
-        if not isinstance(self.data_group['D_0'], Samples):
-            raise ValueError('Run mcmc() first to generate distribution')
-
-        inv_L, _, _ = self._prepare_data_for_fit()
-
-        D_0_samples = self.data_group['D_0'].values
-        eta_samples = self.data_group['viscosity'].values
-
-        n_points = len(inv_L)
-        n_samples = len(D_0_samples)
-        predictions = np.zeros((n_points, n_samples))
-
-        for i in range(n_samples):
-            slope = self._viscosity_to_slope(eta_samples[i] * self.parameter_units[1])
-            predictions[:, i] = yeh_hummer_linear(inv_L, D_0_samples[i], slope)
-
-        return predictions
-
-    def __repr__(self):
-        """String representation."""
-        return self.data_group.__repr__()
-
-    def __str__(self):
-        """String representation."""
-        return self.data_group.__str__()
-
-    def _repr_html_(self):
-        """HTML representation."""
-        return self.data_group._repr_html_()
 
     def plot(
         self,
