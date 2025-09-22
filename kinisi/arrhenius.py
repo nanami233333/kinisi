@@ -11,6 +11,8 @@ the differentiation between data showing Arrhenius and Super-Arrhenius diffusion
 # Distributed under the terms of the MIT License
 # author: Andrew R. McCluskey (arm61)
 
+from collections.abc import Callable
+
 import numpy as np
 import scipp as sc
 from scipp.constants import N_A, R
@@ -38,12 +40,11 @@ class TemperatureDependent(FittingBase):
     def __init__(
         self,
         diffusion,
-        function,
+        function: Callable,
         parameter_names: tuple[str],
         parameter_units: tuple[sc.Unit],
-        bounds: None = None,
+        bounds: None | list = None,
     ) -> 'TemperatureDependent':
-        # Store temperature coordinate for backward compatibility
         self.diffusion = diffusion
         self.temperature = diffusion.coords['temperature']
 

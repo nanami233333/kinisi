@@ -5,6 +5,10 @@ from molecular dynamics simulations with periodic boundary conditions.
 Based on: Yeh & Hummer, J. Phys. Chem. B 2004, 108, 15873-15879
 """
 
+# Copyright (c) kinisi developers.
+# Distributed under the terms of the MIT License
+# author: Fabian Zills (pythonfz)
+
 import matplotlib.pyplot as plt
 import numpy as np
 import scipp as sc
@@ -52,7 +56,6 @@ class YehHummer(FittingBase):
     """
 
     def __init__(self, diffusion, temperature=None, bounds=None):
-        # Store diffusion data for backward compatibility
         self.diffusion = diffusion
 
         # Extract box lengths from coordinates
@@ -96,50 +99,28 @@ class YehHummer(FittingBase):
             ]
         )
 
-    def _yeh_hummer_function(self, box_lengths, D_0, viscosity):
+    def _yeh_hummer_function(
+        self,
+        box_lengths: np.ndarray,
+        D_0: float,
+        viscosity: float,
+    ) -> np.ndarray:
         """
-        Yeh-Hummer function adapted for the base class.
-        Takes box_lengths and parameters, returns diffusion coefficients.
+        Yeh-Hummer function for finitie-size correction fit.
+
+        :param box_lengths: Array of box lengths / Å
+        :param D_0: Infinite-system diffusion coefficient
+        :param viscosity: Shear viscosity
         """
         # Handle both scalar and array inputs
         box_lengths = np.asarray(box_lengths)
-        D_0 = np.asarray(D_0)
-        viscosity = np.asarray(viscosity)
 
-        # Convert box lengths to inverse values
-        if box_lengths.ndim == 2:  # For distribution calculations: (n_points, 1)
-            inv_L = 1.0 / box_lengths[:, 0]  # Extract the box lengths
-        else:
-            inv_L = 1.0 / box_lengths
+        inv_L = 1.0 / box_lengths
 
-        # Handle viscosity conversion
-        if viscosity.ndim == 1:  # Array of viscosity samples
-            # Convert each viscosity value to slope
-            slopes = []
-            for v in viscosity:
-                eta_with_unit = v * self.parameter_units[1]
-                slope = self._viscosity_to_slope(eta_with_unit)
-                slopes.append(slope)
-            slope = np.array(slopes)
-        else:
-            # Scalar viscosity
-            eta_with_unit = viscosity * self.parameter_units[1]
-            slope = self._viscosity_to_slope(eta_with_unit)
+        eta_with_unit = viscosity * self.parameter_units[1]
+        slope = self._viscosity_to_slope(eta_with_unit)
 
-        # Apply linear model
-        if np.isscalar(D_0) and np.isscalar(slope):
-            # Single evaluation
-            return yeh_hummer_linear(inv_L, D_0, slope)
-        else:
-            # Multiple evaluations for distribution
-            if D_0.ndim == 1 and slope.ndim == 1:
-                # D_0 and slope are 1D arrays of samples
-                result = np.zeros((len(inv_L), len(D_0)))
-                for i, (d0, s) in enumerate(zip(D_0, slope, strict=False)):
-                    result[:, i] = yeh_hummer_linear(inv_L, d0, s)
-                return result
-            else:
-                return yeh_hummer_linear(inv_L, D_0, slope)
+        return yeh_hummer_linear(inv_L, D_0, slope)
 
     def _prepare_data_for_fit(self):
         """Prepare data in correct format for fitting."""

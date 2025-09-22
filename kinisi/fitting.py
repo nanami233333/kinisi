@@ -2,6 +2,10 @@
 Base classes for fitting analysis with MCMC sampling and Bayesian evidence estimation.
 """
 
+# Copyright (c) kinisi developers.
+# Distributed under the terms of the MIT License
+# author: Andrew R. McCluskey (arm61)
+
 from collections.abc import Callable
 
 import numpy as np
@@ -38,8 +42,8 @@ class FittingBase:
         function: Callable,
         parameter_names: tuple[str],
         parameter_units: tuple[sc.Unit],
-        bounds: None = None,
-        coordinate_name: str = None,
+        bounds: None | list = None,
+        coordinate_name: str | None = None,
     ) -> 'FittingBase':
         self.data = data
         self.data_group = sc.DataGroup({'data': data})
@@ -111,16 +115,12 @@ class FittingBase:
         covariance_matrix = np.diag(self.data.variances)
         y_values = self.data.values
 
-        if np.any(self.data.variances > 0):
-            _, logdet = np.linalg.slogdet(covariance_matrix)
-            logdet += np.log(2 * np.pi) * y_values.size
-            inv = pinvh(covariance_matrix)
+        _, logdet = np.linalg.slogdet(covariance_matrix)
+        logdet += np.log(2 * np.pi) * y_values.size
+        inv = pinvh(covariance_matrix)
 
-            diff = model - y_values
-            logl = -0.5 * (logdet + np.matmul(diff.T, np.matmul(inv, diff)))
-        else:
-            # No variance info, use simple chi-squared
-            logl = -0.5 * np.sum((model - y_values) ** 2)
+        diff = model - y_values
+        logl = -0.5 * (logdet + np.matmul(diff.T, np.matmul(inv, diff)))
 
         return logl
 
