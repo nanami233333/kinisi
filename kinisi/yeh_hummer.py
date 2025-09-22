@@ -9,31 +9,15 @@ Based on: Yeh & Hummer, J. Phys. Chem. B 2004, 108, 15873-15879
 # Distributed under the terms of the MIT License
 # author: Fabian Zills (pythonfz)
 
-import matplotlib.pyplot as plt
 import numpy as np
 import scipp as sc
+import scipp.constants as const
 from scipy.optimize import curve_fit
 
 from kinisi import __version__
 from kinisi.fitting import FittingBase
 
 from .due import Doi, due
-
-
-def yeh_hummer_linear(inv_L, D_0, slope):
-    """
-    Linear form of Yeh-Hummer equation for fitting.
-
-    D_PBC = D_0 - slope * (1/L)
-
-    where slope = (k_B * T * xi) / (6 * pi * eta)
-
-    :param inv_L: Inverse box lengths (1/L)
-    :param D_0: Infinite-system diffusion coefficient
-    :param slope: Slope containing viscosity information
-    :return: D_PBC values
-    """
-    return D_0 - slope * inv_L
 
 
 @due.dcite(
@@ -55,19 +39,15 @@ class YehHummer(FittingBase):
     :param bounds: Optional bounds for [D_0, viscosity] parameters
     """
 
-    def __init__(self, diffusion, temperature=None, bounds=None):
+    def __init__(self, diffusion, temperature: sc.Variable, bounds=None):
         self.diffusion = diffusion
 
         # Extract box lengths from coordinates
         self.box_lengths = diffusion.coords['box_length']
-
-        # Handle temperature
-        self.temperature = temperature if isinstance(temperature, sc.Variable) else sc.scalar(temperature, unit='K')
+        self.temperature = temperature
 
         # Constants
         self.xi_cubic = 2.837297  # Ewald constant for cubic boxes
-        self.k_B = sc.scalar(value=1.380649e-23, unit='J/K')
-
         # Set up parameters for YehHummer fitting
         parameter_names = ('D_0', 'viscosity')
         parameter_units = (diffusion.unit, sc.Unit('Pa*s'))
@@ -118,9 +98,9 @@ class YehHummer(FittingBase):
         inv_L = 1.0 / box_lengths
 
         eta_with_unit = viscosity * self.parameter_units[1]
-        slope = self._viscosity_to_slope(eta_with_unit)
+        slope = self.viscosity_to_slope(eta_with_unit)
 
-        return yeh_hummer_linear(inv_L, D_0, slope)
+        return self.yeh_hummer_linear(inv_L, D_0, slope)
 
     def _prepare_data_for_fit(self):
         """Prepare data in correct format for fitting."""
@@ -139,7 +119,7 @@ class YehHummer(FittingBase):
         # slope = (k_B * T * xi) / (6 * pi * eta)
         # eta = (k_B * T * xi) / (6 * pi * slope)
 
-        k_B_T = sc.to_unit(self.k_B * self.temperature, 'J')
+        k_B_T = sc.to_unit(const.Boltzmann * self.temperature, 'J')
 
         # slope has units of [diffusion] / [1/length] = [diffusion] * [length]
         # diffusion is cm^2/s, box_lengths is Å, so slope * diffusion.unit / (1/box_lengths.unit)
@@ -150,9 +130,9 @@ class YehHummer(FittingBase):
         eta = (k_B_T * self.xi_cubic) / (6 * np.pi * slope_SI)
         return sc.to_unit(eta, 'Pa*s')
 
-    def _viscosity_to_slope(self, eta):
+    def viscosity_to_slope(self, eta):
         """Convert viscosity to slope for fitting."""
-        slope = (self.k_B * self.temperature * self.xi_cubic) / (6 * np.pi * eta)
+        slope = (const.Boltzmann * self.temperature * self.xi_cubic) / (6 * np.pi * eta)
 
         # Convert back to data units
         target_unit = self.diffusion.unit * self.box_lengths.unit
@@ -203,126 +183,18 @@ class YehHummer(FittingBase):
         """Return estimated shear viscosity."""
         return self.data_group['viscosity']
 
-    def plot(
-        self,
-        ax=None,
-        credible_intervals=None,
-        alpha=None,
-        n_extrapolation_points=50,
-    ):
-        """Plot data and credible intervals with extrapolation to infinite box size."""
-        if ax is None:
-            _, ax = plt.subplots()
-        if credible_intervals is None:
-            credible_intervals = [[16, 84], [2.5, 97.5], [0.15, 99.85]]
-        if alpha is None:
-            alpha = [0.6, 0.4, 0.2]
+    @staticmethod
+    def yeh_hummer_linear(inv_L, D_0, slope):
+        """
+        Linear form of Yeh-Hummer equation for fitting.
 
-        # Get current data points
-        inv_L_data = 1 / self.box_lengths.values
+        D_PBC = D_0 - slope * (1/L)
 
-        # Create extended range for extrapolation if requested
+        where slope = (k_B * T * xi) / (6 * pi * eta)
 
-        max_inv_L = np.max(inv_L_data)
-        inv_L_extended = np.linspace(0, max_inv_L * 1.1, n_extrapolation_points)
-
-        print(
-            f'D_infinite: {sc.mean(self.D_infinite).value:.3e} ± {sc.std(self.D_infinite, ddof=1).value:.3e} {self.D_infinite.unit}'
-        )
-        print(
-            f'Shear viscosity: {sc.mean(self.shear_viscosity).value:.3e} ± {sc.std(self.shear_viscosity, ddof=1).value:.3e} {self.shear_viscosity.unit}'
-        )
-
-        # Plot data points
-        ax.errorbar(
-            inv_L_data,
-            self.diffusion.values,
-            np.sqrt(self.diffusion.variances),
-            marker='o',
-            ls='',
-            color='k',
-            zorder=10,
-        )
-
-        # Generate predictions for extended range
-        D_0_samples = self.data_group['D_0'].values
-        eta_samples = self.data_group['viscosity'].values
-        n_samples = len(D_0_samples)
-        predictions_extended = np.zeros((len(inv_L_extended), n_samples))
-
-        for i in range(n_samples):
-            slope = self._viscosity_to_slope(eta_samples[i] * self.parameter_units[1])
-            predictions_extended[:, i] = yeh_hummer_linear(inv_L_extended, D_0_samples[i], slope)
-
-        # Plot credible intervals for extended range
-        for i, ci in enumerate(credible_intervals):
-            ax.fill_between(
-                inv_L_extended,
-                *np.percentile(predictions_extended, ci, axis=1),
-                alpha=alpha[i],
-                color='#0173B2',
-                lw=0,
-            )
-
-        # Add D_infinite and viscosity text
-        D_inf_mean = sc.mean(self.D_infinite).value
-        D_inf_std = sc.std(self.D_infinite, ddof=1).value
-        eta_mean = sc.mean(self.shear_viscosity).value
-        eta_std = sc.std(self.shear_viscosity, ddof=1).value
-
-        xlim = ax.get_xlim()
-        ylim = ax.get_ylim()
-
-        text_x = xlim[1] - 0.05 * (xlim[1] - xlim[0])
-        text_y = ylim[1] - 0.05 * (ylim[1] - ylim[0])
-        va = 'top'
-
-        text_str = f'$D_\\infty$ = {D_inf_mean:.3e} ± {D_inf_std:.3e} {self.D_infinite.unit}\n'
-        text_str += f'$\\eta$ = {eta_mean:.3e} ± {eta_std:.3e} {self.shear_viscosity.unit}'
-
-        ax.text(
-            text_x,
-            text_y,
-            text_str,
-            transform=ax.transData,
-            bbox={'boxstyle': 'round,pad=0.3', 'facecolor': 'white', 'alpha': 0.8},
-            ha='right',
-            va=va,
-            fontsize=10,
-        )
-
-        ax.set_xlabel('1 / L / Å$^{-1}$')
-        ax.set_ylabel(f'D  / {self.diffusion.unit}')
-
-        return ax
-
-
-# Example usage
-def example_usage():
-    """Example showing how to use YehHummer class."""
-
-    # TIP3P water data from Yeh & Hummer paper
-    box_lengths = np.array([18.58, 23.42, 29.51, 37.19, 46.86])  # Angstroms
-    D_values = np.array([4.884e-5, 5.123e-5, 5.315e-5, 5.466e-5, 5.590e-5])  # cm^2/s
-    D_errors = np.array([0.032e-5, 0.027e-5, 0.014e-5, 0.011e-5, 0.013e-5])  # cm^2/s
-
-    # Create DataArray in kinisi style
-    td = sc.DataArray(
-        data=sc.array(dims=['system'], values=D_values, variances=D_errors**2, unit='cm^2/s'),
-        coords={'box_length': sc.Variable(dims=['system'], values=box_lengths, unit='angstrom')},
-    )
-
-    # Create YehHummer object
-    yh = YehHummer(td, temperature=298)
-
-    # Run MCMC
-    yh.mcmc(n_samples=500, n_walkers=16)
-
-    yh.plot()
-    plt.savefig('yeh_hummer_example.png', dpi=300)
-
-    return yh
-
-
-if __name__ == '__main__':
-    example_usage()
+        :param inv_L: Inverse box lengths (1/L)
+        :param D_0: Infinite-system diffusion coefficient
+        :param slope: Slope containing viscosity information
+        :return: D_PBC values
+        """
+        return D_0 - slope * inv_L

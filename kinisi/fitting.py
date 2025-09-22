@@ -4,7 +4,7 @@ Base classes for fitting analysis with MCMC sampling and Bayesian evidence estim
 
 # Copyright (c) kinisi developers.
 # Distributed under the terms of the MIT License
-# author: Andrew R. McCluskey (arm61)
+# author: Andrew R. McCluskey (arm61), Fabian Zills (pythonfz)
 
 from collections.abc import Callable
 
@@ -40,8 +40,8 @@ class FittingBase:
         self,
         data,
         function: Callable,
-        parameter_names: tuple[str],
-        parameter_units: tuple[sc.Unit],
+        parameter_names: tuple[str, ...],
+        parameter_units: tuple[sc.Unit, ...],
         bounds: None | list = None,
         coordinate_name: str | None = None,
     ) -> 'FittingBase':
