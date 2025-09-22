@@ -23,9 +23,9 @@ class TestYehHummer:
 
         np.testing.assert_array_almost_equal(result, expected)
 
-    def test_yeh_hummer_tip4p_data(self):
-        """Test YehHummer with TIP4P water data from the example."""
-        # TIP4P water data from Yeh & Hummer paper (corrected values)
+    def test_yeh_hummer_tip3p_data(self):
+        """Test YehHummer with TIP3P water data from the example."""
+        # TIP3P water data from Yeh & Hummer paper (corrected values)
         box_lengths = np.array([18.58, 23.42, 29.51, 37.19, 46.86])  # Angstroms
         D_values = np.array([4.884e-5, 5.123e-5, 5.315e-5, 5.466e-5, 5.590e-5])  # cm^2/s
         D_errors = np.array([0.032e-5, 0.027e-5, 0.014e-5, 0.011e-5, 0.013e-5])  # cm^2/s
