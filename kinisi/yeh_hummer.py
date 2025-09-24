@@ -94,11 +94,21 @@ class YehHummer(FittingBase):
         """
         # Handle both scalar and array inputs
         box_lengths = np.asarray(box_lengths)
+        viscosity = np.asarray(viscosity)
 
         inv_L = 1.0 / box_lengths
 
-        eta_with_unit = viscosity * self.parameter_units[1]
-        slope = self.viscosity_to_slope(eta_with_unit)
+        if viscosity.ndim == 0:
+            eta_with_unit = viscosity * self.parameter_units[1]
+            slope = self.viscosity_to_slope(eta_with_unit)
+        else:
+            # viscosity as an array (from MCMC samples)
+            slopes = []
+            for visc_val in viscosity:
+                eta_with_unit = visc_val * self.parameter_units[1]
+                slope = self.viscosity_to_slope(eta_with_unit)
+                slopes.append(slope)
+            slope = np.array(slopes)
 
         return self.yeh_hummer_linear(inv_L, D_0, slope)
 

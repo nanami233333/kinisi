@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 import scipp as sc
 
-from kinisi.yeh_hummer import YehHummer, yeh_hummer_linear
+from kinisi.yeh_hummer import YehHummer
 
 
 class TestYehHummer:
@@ -18,7 +18,7 @@ class TestYehHummer:
         D_0 = 6.0e-5
         slope = 1.0e-6
 
-        result = yeh_hummer_linear(inv_L, D_0, slope)
+        result = YehHummer.yeh_hummer_linear(inv_L, D_0, slope)
         expected = D_0 - slope * inv_L
 
         np.testing.assert_array_almost_equal(result, expected)
@@ -37,7 +37,7 @@ class TestYehHummer:
         )
 
         # Create YehHummer object
-        yh = YehHummer(td, temperature=298)
+        yh = YehHummer(td, temperature=sc.scalar(298, unit='K'))
 
         # Check that parameters are reasonable
         assert yh.D_infinite.value > 0
@@ -65,7 +65,7 @@ class TestYehHummer:
             coords={'box_length': sc.Variable(dims=['system'], values=box_lengths, unit='angstrom')},
         )
 
-        yh = YehHummer(td, temperature=298)
+        yh = YehHummer(td, temperature=sc.scalar(298, unit='K'))
 
         # Run MCMC with small sample size for testing
         yh.mcmc(n_samples=50, n_walkers=8, n_burn=20, n_thin=2)
@@ -98,7 +98,7 @@ class TestYehHummer:
             (1e-4 * sc.Unit('Pa*s'), 1e-2 * sc.Unit('Pa*s')),  # viscosity bounds
         )
 
-        yh = YehHummer(td, temperature=298, bounds=bounds)
+        yh = YehHummer(td, temperature=sc.scalar(298, unit='K'), bounds=bounds)
 
         # Check that fitted values are within bounds
         assert bounds[0][0].value <= yh.D_infinite.value <= bounds[0][1].value
@@ -115,7 +115,7 @@ class TestYehHummer:
             coords={'box_length': sc.Variable(dims=['system'], values=box_lengths, unit='angstrom')},
         )
 
-        yh = YehHummer(td, temperature=298)
+        yh = YehHummer(td, temperature=sc.scalar(298, unit='K'))
 
         # Test property accessors
         assert yh.D_infinite == yh.data_group['D_0']
@@ -140,4 +140,4 @@ class TestYehHummer:
         bounds = ((4e-5 * sc.Unit('cm^2/s'), 7e-5 * sc.Unit('cm^2/s')),)  # Only one bound
 
         with pytest.raises(ValueError, match='Bounds must be a tuple of length 2'):
-            YehHummer(td, temperature=298, bounds=bounds)
+            YehHummer(td, temperature=sc.scalar(298, unit='K'), bounds=bounds)
