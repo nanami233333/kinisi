@@ -7,3 +7,6 @@ due.cite(
     description='kinisi: Bayesian analysis of mass transport from molecular dynamics simulations',
     path='kinisi',
 )
+
+# pre-commit CI check
+import numpy as np
