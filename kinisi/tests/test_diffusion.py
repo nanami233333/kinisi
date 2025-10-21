@@ -6,15 +6,14 @@ Tests for diffusion module
 # Distributed under the terms of the MIT License.
 # @author: Andrew R. McCluskey (arm61) & Harry Richardson (Harry-Rich)
 
-import os
 import unittest
 
 import numpy as np
 import pytest
 import scipp as sc
 
-import kinisi
 from kinisi.diffusion import Diffusion, _straight_line, minimum_eigenvalue_method
+from kinisi.tests import TEST_FILE_PATH
 
 # Random seed setting not yet implemented into bayesian regression and so cannot almost_equal
 
@@ -41,9 +40,7 @@ class TestFunctions(unittest.TestCase):
 class TestDiffusion(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.msd_load = sc.io.load_hdf5(
-            filename=os.path.join(os.path.dirname(kinisi.__file__), 'tests/inputs/example_msd2.hdf5')
-        )['_dg']
+        cls.msd_load = sc.io.load_hdf5(filename=TEST_FILE_PATH / 'example_msd2.hdf5')['_dg']
         cls.RNG = np.random.RandomState(42)
         cls.diff = Diffusion(dg=cls.msd_load)
 
@@ -79,9 +76,7 @@ class TestDiffusion(unittest.TestCase):
         assert self.diff.D_J.to_unit('cm2/s').unit == sc.Unit('cm2/s')
 
     def test__conductivity(self):
-        msd_load = sc.io.load_hdf5(
-            filename=os.path.join(os.path.dirname(kinisi.__file__), 'tests/inputs/example_msd2.hdf5')
-        )['_dg']
+        msd_load = sc.io.load_hdf5(filename=TEST_FILE_PATH / 'example_msd2.hdf5')['_dg']
         diff_cond = Diffusion(dg=msd_load)
         diff_cond.dg['da'] = diff_cond.dg['da'] * sc.scalar(1.0, unit=sc.Unit('coulomb2'))
         start_dt = 300 * sc.Unit('femtosecond')
@@ -126,9 +121,7 @@ class TestDiffusion(unittest.TestCase):
         custom_samp2 = self.diff.posterior_predictive(n_posterior_samples=1, n_predictive_samples=400, progress=False)
         assert custom_samp2.dims == ('samples', 'time interval')
 
-        msd_load = sc.io.load_hdf5(
-            filename=os.path.join(os.path.dirname(kinisi.__file__), 'tests/inputs/example_msd2.hdf5')
-        )['_dg']
+        msd_load = sc.io.load_hdf5(filename=TEST_FILE_PATH / 'example_msd2.hdf5')['_dg']
         diff_exc = Diffusion(dg=msd_load)
         diff_exc.dg['da'] = diff_exc.dg['da'] * sc.scalar(1.0, unit=sc.Unit('watts'))
 
