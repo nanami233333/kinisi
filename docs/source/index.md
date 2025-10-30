@@ -28,14 +28,14 @@ the estimated Einstein diffusion relationship (blue regions representing descrea
 The Markov chain Monte Carlo algorithm uses [the `emcee` package](https://emcee.readthedocs.io/en/stable/).
 Examples of some of the analyses `kinisi` can perform are shown in the [notebooks](./notebooks).
 <center>
-<img src="https://raw.githubusercontent.com/scipy/scipy.org/refs/heads/main/static/images/logo.svg" width="10%">&nbsp;&nbsp;&nbsp;&nbsp;
-<img src="https://raw.githubusercontent.com/numpy/numpy/87e208c900ef0ac46bb3ea861c811f94f478698f/branding/logo/primary/numpylogo.png" width="25%">&nbsp;&nbsp;&nbsp;&nbsp;
-<img src="https://scipp.github.io/_static/logo-2022.svg" width="25%">&nbsp;&nbsp;&nbsp;&nbsp;
-<img src="https://raw.githubusercontent.com/dfm/emcee/c75406b1a6bf197f71f9e56068e9ea57af08be54/docs/_static/logo-sidebar.png" width="20%">&nbsp;&nbsp;&nbsp;&nbsp;
+<a href="https://scipy.org"><img src="https://raw.githubusercontent.com/scipy/scipy.org/refs/heads/main/static/images/logo.svg" width="10%"></a>&nbsp;&nbsp;&nbsp;&nbsp;
+<a href="https://numpy.org"><img src="https://raw.githubusercontent.com/numpy/numpy/87e208c900ef0ac46bb3ea861c811f94f478698f/branding/logo/primary/numpylogo.png" width="25%"></a>&nbsp;&nbsp;&nbsp;&nbsp;
+<a href="http://scipp.github.io"><img src="https://scipp.github.io/_static/logo-2022.svg" width="25%"></a>&nbsp;&nbsp;&nbsp;&nbsp;
+<a href="https://emcee.readthedocs.io/"><img src="https://raw.githubusercontent.com/dfm/emcee/c75406b1a6bf197f71f9e56068e9ea57af08be54/docs/_static/logo-sidebar.png" width="20%"></a>&nbsp;&nbsp;&nbsp;&nbsp;
 <br>
-<img src="https://www.mdanalysis.org/public/mdanalysis-logo_square.png" width="10%">&nbsp;&nbsp;&nbsp;&nbsp;
-<img src="https://raw.githubusercontent.com/materialsproject/pymatgen/master/docs/assets/pymatgen.svg" width="20%">&nbsp;&nbsp;&nbsp;&nbsp;
-<img src="https://ase-lib.org/_static/ase256.png" width="10%">&nbsp;&nbsp;&nbsp;&nbsp;
+<a href="http://mdanalysis.org"><img src="https://www.mdanalysis.org/public/mdanalysis-logo_square.png" width="10%"></a>&nbsp;&nbsp;&nbsp;&nbsp;
+<a href="http://pymatgen.org"><img src="https://raw.githubusercontent.com/materialsproject/pymatgen/master/docs/assets/pymatgen.svg" width="20%"></a>&nbsp;&nbsp;&nbsp;&nbsp;
+<a href="http://ase-lib.org"><img src="https://ase-lib.org/_static/ase256.png" width="10%"></a>&nbsp;&nbsp;&nbsp;&nbsp;
 </center>
 
 ## [Contributors](https://github.com/kinisi-dev/kinisi/graphs/contributors)
