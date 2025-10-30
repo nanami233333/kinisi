@@ -44,15 +44,14 @@ def calculate_msd(p: parser.Parser, progress: bool = True) -> sc.Variable:
         msd.append(m)
         msd_var.append(v)
         n_samples.append(n)
-
-    return sc.DataArray(
+    da = sc.DataArray(
         data=sc.Variable(dims=['time interval'], values=np.array(msd, dtype='float64'), variances=msd_var, unit=s.unit),
         coords={
             'time interval': p.dt['time interval', : len(msd)],
             'n_samples': sc.array(dims=['time interval'], values=n_samples),
-            'dimensionality': p.dimensionality,
         },
     )
+    return sc.DataGroup({'da': da, 'dimensionality': p.dimensionality})
 
 
 def calculate_mstd(
@@ -84,11 +83,12 @@ def calculate_mstd(
         disp = sc.concat(
             [p.displacements['obs', di - 1], p.displacements['obs', di:] - p.displacements['obs', :-di]], 'obs'
         )
+        ratio = disp.sizes['particle'] / system_particles
         disp = _consolidate_system_particles(disp, system_particles)
         n = (disp.sizes['particle'] * p.dt_index['time interval', -1] / di).value
         if ionic_charge is not None:
             disp = disp * ionic_charge
-        s = sc.sum(disp**2, 'dimension')
+        s = sc.sum(disp**2, 'dimension') / ratio
         if s.size <= 1:
             continue
         m = sc.mean(s).value
@@ -96,15 +96,14 @@ def calculate_mstd(
         mstd.append(np.float64(m))
         mstd_var.append(np.float64(v))
         n_samples.append(n)
-
-    return sc.DataArray(
+    da = sc.DataArray(
         data=sc.Variable(dims=['time interval'], values=mstd, variances=mstd_var, unit=s.unit),
         coords={
             'time interval': p.dt['time interval', : len(mstd)],
             'n_samples': sc.array(dims=['time interval'], values=n_samples),
-            'dimensionality': p.dimensionality,
         },
     )
+    return sc.DataGroup({'da': da, 'dimensionality': p.dimensionality})
 
 
 def _consolidate_system_particles(disp: sc.DataArray, system_particles: int = 1) -> sc.DataArray:
