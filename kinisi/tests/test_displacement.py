@@ -141,7 +141,7 @@ class TestCalculateMstd(unittest.TestCase):
             data=sc.Variable(
                 dims=['time interval'],
                 values=[4.5625 / 2, 17.416667 / 2, 39.125 / 2],
-                variances=[0.31640625 / 2 ** 2, 3.01041667 / 2 ** 2, 14.6484375 / 2 ** 2],
+                variances=[0.31640625 / 2**2, 3.01041667 / 2**2, 14.6484375 / 2**2],
             ),
             coords={
                 'time interval': PARSER.dt['time interval', :-1],
@@ -159,7 +159,7 @@ class TestCalculateMstd(unittest.TestCase):
             data=sc.Variable(
                 dims=['time interval'],
                 values=[4.5625 / 2, 17.416667 / 2, 39.125 / 2],
-                variances=[0.31640625 / 2 ** 2, 3.01041667 / 2 ** 2, 14.6484375 / 2 ** 2],
+                variances=[0.31640625 / 2**2, 3.01041667 / 2**2, 14.6484375 / 2**2],
             ),
             coords={
                 'time interval': PARSER.dt['time interval', :-1],
@@ -177,7 +177,7 @@ class TestCalculateMstd(unittest.TestCase):
             data=sc.Variable(
                 dims=['time interval'],
                 values=[18.25 / 2, 69.66666667 / 2, 156.5 / 2],
-                variances=[5.0625 / 2 ** 2, 48.16666667 / 2 ** 2, 234.375 / 2 ** 2],
+                variances=[5.0625 / 2**2, 48.16666667 / 2**2, 234.375 / 2**2],
                 unit=sc.Unit('elementary_charge') ** 2,
             ),
             coords={
