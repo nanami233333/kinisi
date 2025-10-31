@@ -202,7 +202,9 @@ class Diffusion:
         _jump_diffusion_coefficient = sc.to_unit(self.gradient / (2 * self.dg['dimensionality'].value), 'cm2/s')
         self._jump_diffusion_coefficient = Samples(_jump_diffusion_coefficient.values, _jump_diffusion_coefficient.unit)
 
-    def _conductivity(self, start_dt: sc.Variable, temperature: sc.Variable, volume: sc.Variable, **kwargs):
+    def _conductivity(
+        self, start_dt: sc.Variable, temperature: sc.Variable, volume: sc.Variable, number_of_particles: int, **kwargs
+    ):
         """
         Calculation of the conductivity.
         Keyword arguments will be passed of the :py:func:`bayesian_regression` method.
@@ -210,13 +212,14 @@ class Diffusion:
         :param start_dt: The time at which the diffusion regime begins.
         :param temperature: The temperature of the system.
         :param volume: The volume of the system.
+        :param number_of_particles: The number of particles in the system.
         :param kwargs: Additional keyword arguments to pass to :py:func:`bayesian_regression`.
         """
         self.bayesian_regression(start_dt=start_dt, **kwargs)
         _conductivity_diffusion_coefficient = sc.to_unit(
             self.gradient / (2 * self.dg['dimensionality'].value), 'coulomb2cm2/s'
         )
-        conversion = 1 / (volume * k * temperature)
+        conversion = number_of_particles / (volume * k * temperature)
         _sigma = sc.to_unit(_conductivity_diffusion_coefficient * conversion, 'mS/cm')
         self._sigma = Samples(_sigma.values, _sigma.unit)
 

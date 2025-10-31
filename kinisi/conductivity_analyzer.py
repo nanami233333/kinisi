@@ -275,6 +275,7 @@ class ConductivityAnalyzer(Analyzer):
             start_dt,
             temperature,
             self.trajectory._volume,
+            self.trajectory.displacements.sizes['particle'],
             cond_max=cond_max,
             fit_intercept=fit_intercept,
             n_samples=n_samples,

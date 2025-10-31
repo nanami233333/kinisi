@@ -83,7 +83,7 @@ class TestDiffusion(unittest.TestCase):
         temp = 320 * sc.Unit('kelvin')
         volume = 300 * sc.Unit('angstrom3')
 
-        diff_cond._conductivity(start_dt=start_dt, temperature=temp, volume=volume)
+        diff_cond._conductivity(start_dt=start_dt, temperature=temp, volume=volume, number_of_particles=50)
 
         assert diff_cond._sigma.to_unit('S/m').unit == 'S/m'
         assert diff_cond.sigma.to_unit('S/m').unit == 'S/m'
