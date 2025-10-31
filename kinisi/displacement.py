@@ -83,11 +83,13 @@ def calculate_mstd(
         disp = sc.concat(
             [p.displacements['obs', di - 1], p.displacements['obs', di:] - p.displacements['obs', :-di]], 'obs'
         )
+        disp_original = disp
         disp = _consolidate_system_particles(disp, system_particles)
+        ratio = disp_original.sizes['particle'] / disp.sizes['particle']
         n = (disp.sizes['particle'] * p.dt_index['time interval', -1] / di).value
         if ionic_charge is not None:
             disp = disp * ionic_charge
-        s = sc.sum(disp**2, 'dimension')
+        s = sc.sum(disp**2, 'dimension') / ratio
         if s.size <= 1:
             continue
         m = sc.mean(s).value
