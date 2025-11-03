@@ -19,9 +19,9 @@ from kinisi import __version__
 from .due import Doi, due
 
 DIMENSIONALITY = {
-    'x': np.s_[0],
-    'y': np.s_[1],
-    'z': np.s_[2],
+    'x': np.s_[0:1],
+    'y': np.s_[1:2],
+    'z': np.s_[2:3],
     'xy': np.s_[:2],
     'xz': np.s_[::2],
     'yz': np.s_[1:],
@@ -112,7 +112,10 @@ class Parser:
         drift_corrected = self.correct_drift(disp)
 
         self._slice = DIMENSIONALITY[dimension.lower()]
+        print(drift_corrected)
+        print(self._slice)
         drift_corrected = drift_corrected['dimension', self._slice]
+        print(drift_corrected)
         self.dimensionality = drift_corrected.sizes['dimension'] * sc.units.dimensionless
 
         self.displacements = drift_corrected['particle', indices]

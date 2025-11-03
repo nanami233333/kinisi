@@ -240,6 +240,10 @@ class TestParser(unittest.TestCase):
         data = parser.Parser(coords, latt, time_step, step_skip, dt, specie_indices, drift_indices, dimension=dimension)
         assert_equal(data.dt.size, 140)
 
+    def test_parser_one_dimension(self):
+        data = parser.Parser(coords, latt, time_step, step_skip, dt, specie_indices, drift_indices, dimension='x')
+        assert_equal(data.displacements.sizes['dimension'], 1)
+
     def test_parser_datagroup_round_trip(self):
         data = parser.Parser(coords, latt, time_step, step_skip, dt, specie_indices, drift_indices, dimension=dimension)
         datagroup = data._to_datagroup()
