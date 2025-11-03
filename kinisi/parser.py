@@ -19,16 +19,16 @@ from kinisi import __version__
 from .due import Doi, due
 
 DIMENSIONALITY = {
-    'x': np.s_[0],
-    'y': np.s_[1],
-    'z': np.s_[2],
+    'x': np.s_[0:1],
+    'y': np.s_[1:2],
+    'z': np.s_[2:3],
     'xy': np.s_[:2],
     'xz': np.s_[::2],
     'yz': np.s_[1:],
     'xyz': np.s_[:],
-    b'x': np.s_[0],
-    b'y': np.s_[1],
-    b'z': np.s_[2],
+    b'x': np.s_[0:1],
+    b'y': np.s_[1:2],
+    b'z': np.s_[2:3],
     b'xy': np.s_[:2],
     b'xz': np.s_[::2],
     b'yz': np.s_[1:],
