@@ -244,6 +244,14 @@ class TestParser(unittest.TestCase):
         data = parser.Parser(coords, latt, time_step, step_skip, dt, specie_indices, drift_indices, dimension='x')
         assert_equal(data.displacements.sizes['dimension'], 1)
 
+    def test_parser_two_dimension(self):
+        data = parser.Parser(coords, latt, time_step, step_skip, dt, specie_indices, drift_indices, dimension='xy')
+        assert_equal(data.displacements.sizes['dimension'], 2)
+
+    def test_parser_three_dimension(self):
+        data = parser.Parser(coords, latt, time_step, step_skip, dt, specie_indices, drift_indices, dimension='xyz')
+        assert_equal(data.displacements.sizes['dimension'], 3)
+
     def test_parser_datagroup_round_trip(self):
         data = parser.Parser(coords, latt, time_step, step_skip, dt, specie_indices, drift_indices, dimension=dimension)
         datagroup = data._to_datagroup()
