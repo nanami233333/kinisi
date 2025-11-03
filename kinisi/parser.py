@@ -112,10 +112,7 @@ class Parser:
         drift_corrected = self.correct_drift(disp)
 
         self._slice = DIMENSIONALITY[dimension.lower()]
-        print(drift_corrected)
-        print(self._slice)
         drift_corrected = drift_corrected['dimension', self._slice]
-        print(drift_corrected)
         self.dimensionality = drift_corrected.sizes['dimension'] * sc.units.dimensionless
 
         self.displacements = drift_corrected['particle', indices]
