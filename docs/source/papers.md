@@ -24,4 +24,5 @@ Here we will try and list publications that have used `kinisi` (if you would lik
 20. Christensen, R. & Smedskjaer, M. M., *ChemRvix*, 2025. doi:[10.26434/chemrxiv-2025-0v720](https://doi.org/10.26434/chemrxiv-2025-7csf2).
 21. Olowookere, F. V. & Turner C. H., *J. Phys. Chem. B*, **129**, 10407-10416, 2025. doi:[10.1021/acs.jpcb.5c04022](https://doi.org/10.1021/acs.jpcb.5c04022).
 22. Casella, J., Morzy, J., Mocanu, F. C., Müller, A., Yarema, M., Futscher, M. H., Islam, M. S., & Romanyuk, Y. E., *ACS Appl. Energy Mater.*, *8*, 20, 15101-15111, 2025. doi:[10.1021/acsaem.5c01772](https://doi.org/10.1021/acsaem.5c01772).
-23. Lin, C., Luong, H. D., Sasaki, R., Tateyama, Y., *Adv. Energy Mater.*, In Press, 2025. doi:[10.1002/aenm.202505227](https://doi.org/10.1002/aenm.202505227)
+23. Lin, C., Luong, H. D., Sasaki, R., & Tateyama, Y., *Adv. Energy Mater.*, In Press, 2025. doi:[10.1002/aenm.202505227](https://doi.org/10.1002/aenm.202505227)
+24. Leon, P. A., Jun, K., Gordiz, K., Shao-Horn, Y., & Gomez-Bombarelli, R., *J. Phys. Chem. Lett.*, 16, XXX, 12419–12427, 2025. doi: [10.1021/acs.jpclett.5c02680](https://doi.org/10.1021/acs.jpclett.5c02680). 
