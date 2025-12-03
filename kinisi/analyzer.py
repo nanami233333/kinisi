@@ -156,6 +156,7 @@ class Analyzer:
             ]
             p = u[0]
             p.displacements = sc.concat([i.displacements for i in u], 'particle')
+            p._volume = sc.concat([i._volume for i in u], 'repeats')
             return cls(p)
         elif dtype == 'consecutive':
             structures = _flatten_list([x.structures for x in trajectory])
@@ -226,6 +227,7 @@ class Analyzer:
             ]
             p = u[0]
             p.displacements = sc.concat([i.displacements for i in u], 'particle')
+            p._volume = sc.concat([i._volume for i in u], 'repeats')
             return cls(p)
         else:
             raise ValueError('The dtype specified was not recognised, please consult the kinisi documentation.')
@@ -281,6 +283,7 @@ class Analyzer:
             ]
             p = u[0]
             p.displacements = sc.concat([i.displacements for i in u], 'particle')
+            p._volume = sc.concat([i._volume for i in u], 'repeats')
             return cls(p)
         elif dtype == 'consecutive':
             structures = _flatten_list([x for x in trajectory])

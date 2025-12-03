@@ -219,6 +219,8 @@ class Diffusion:
         _conductivity_diffusion_coefficient = sc.to_unit(
             self.gradient / (2 * self.dg['dimensionality'].value), 'coulomb2cm2/s'
         )
+        if volume.shape[0] >= 1:
+            volume = sc.sum(volume)     
         conversion = number_of_particles / (volume * k * temperature)
         _sigma = sc.to_unit(_conductivity_diffusion_coefficient * conversion, 'mS/cm')
         self._sigma = Samples(_sigma.values, _sigma.unit)
