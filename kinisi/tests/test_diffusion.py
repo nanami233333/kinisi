@@ -12,7 +12,7 @@ import numpy as np
 import pytest
 import scipp as sc
 
-from kinisi.diffusion import Diffusion, _straight_line, minimum_eigenvalue_method
+from kinisi.diffusion import Diffusion, _straight_line, eigenvalue_clipping, marchenkopastur, minimum_eigenvalue_method
 from kinisi.tests import TEST_FILE_PATH
 
 # Random seed setting not yet implemented into bayesian regression and so cannot almost_equal
@@ -35,6 +35,17 @@ class TestFunctions(unittest.TestCase):
         result = _straight_line(x, m, c)
         expected_result = np.array([4.3, 7.3, 10.3])
         assert np.all(result == expected_result)
+
+    def test_eigenvalue_clipping(self):
+        matrix = np.random.random((100, 100)) + 100
+        reconditioned_matrix = eigenvalue_clipping(matrix)
+        assert not np.allclose(matrix, reconditioned_matrix)
+
+    def test_marchenkopastur(self):
+        x = np.linspace(1, 11, 10)
+        result = marchenkopastur(x, 2, 2)
+        actual = np.array([0.03978874, 0.02530364, 0.01740905, 0.01145199, 0.00519943, 0.0, 0.0, 0.0, 0.0, 0.0])
+        assert np.allclose(result, actual)
 
 
 class TestDiffusion(unittest.TestCase):
