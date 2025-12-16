@@ -237,6 +237,7 @@ class DiffusionAnalyzer(Analyzer):
 
         :param start_dt: The time at which the diffusion regime begins.
         :param cond_max: The maximum condition number of the covariance matrix. Optional, default is :py:attr:`1e16`.
+        :param recondition: Whether to recondition the covariance matrix. Optional, default is :py:attr:`False`.
         :param fit_intercept: Whether to fit an intercept. Optional, default is :py:attr:`True`.
         :param n_samples: The number of MCMC samples to take. Optional, default is :py:attr:`1000`.
         :param n_walkers: The number of walkers to use in the MCMC. Optional, default is :py:attr:`32`.
