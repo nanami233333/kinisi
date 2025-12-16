@@ -11,13 +11,10 @@ import scipp as sc
 from emcee import EnsembleSampler
 from scipp.constants import k
 from scipy.linalg import pinvh
-from scipy.optimize import minimize
-from scipy.stats import linregress, multivariate_normal
-from statsmodels.stats.correlation_tools import cov_nearest
 from scipy.optimize import curve_fit
-from statsmodels.stats.moment_helpers import cov2corr, corr2cov
-from scipy.stats import gaussian_kde
-
+from scipy.stats import gaussian_kde, linregress, multivariate_normal
+from statsmodels.stats.correlation_tools import cov_nearest
+from statsmodels.stats.moment_helpers import corr2cov, cov2corr
 from tqdm import tqdm
 
 from kinisi import __version__
@@ -266,14 +263,16 @@ class Diffusion:
                 cov[j, i] = np.copy(cov[i, j])
         if self._recondition:
             return sc.array(
-            dims=['time_interval1', 'time_interval2'],
-            values=cov_nearest(eigenvalue_clipping(cov_nearest(cov[self.diff_regime :, self.diff_regime :]))),
-            unit=self.dg['da'].unit ** 2,
-        )
+                dims=['time_interval1', 'time_interval2'],
+                values=cov_nearest(eigenvalue_clipping(cov_nearest(cov[self.diff_regime :, self.diff_regime :]))),
+                unit=self.dg['da'].unit ** 2,
+            )
         else:
             return sc.array(
                 dims=['time_interval1', 'time_interval2'],
-                values=cov_nearest(minimum_eigenvalue_method(cov[self.diff_regime :, self.diff_regime :], self._cond_max)),
+                values=cov_nearest(
+                    minimum_eigenvalue_method(cov[self.diff_regime :, self.diff_regime :], self._cond_max)
+                ),
                 unit=self.dg['da'].unit ** 2,
             )
 
@@ -386,11 +385,12 @@ def eigenvalue_clipping(cov: np.ndarray) -> np.ndarray:
 def marchenkopastur(x: np.ndarray, lambda_: float, sigma: float) -> np.ndarray:
     """
     Marchenko-Pastur distribution
-    
+
     :param x: points at which to evaluate the distribution
     :param lambda_: lambda parameter
     :param sigma: standard deviation of the distribution
     """
+
     def m0(a: np.ndarray) -> np.ndarray:
         """
         Element wise maximum of (a, 0)
@@ -399,11 +399,11 @@ def marchenkopastur(x: np.ndarray, lambda_: float, sigma: float) -> np.ndarray:
         :return: element wise maximum of (a, 0)
         """
         return np.maximum(a, np.zeros_like(a))
-    
-    lambda_plus = (1 + lambda_ ** 0.5) ** 2
-    lambda_minus = (1 - lambda_ ** 0.5) ** 2
 
-    return np.sqrt(m0(lambda_plus  - x) *  m0(x- lambda_minus)) / (2 * np.pi * sigma ** 2 * lambda_ * x)
+    lambda_plus = (1 + lambda_**0.5) ** 2
+    lambda_minus = (1 - lambda_**0.5) ** 2
+
+    return np.sqrt(m0(lambda_plus - x) * m0(x - lambda_minus)) / (2 * np.pi * sigma**2 * lambda_ * x)
 
 
 def _straight_line(abscissa: np.ndarray, gradient: float, intercept: float = 0.0) -> np.ndarray:
