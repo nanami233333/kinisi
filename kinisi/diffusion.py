@@ -14,6 +14,10 @@ from scipy.linalg import pinvh
 from scipy.optimize import minimize
 from scipy.stats import linregress, multivariate_normal
 from statsmodels.stats.correlation_tools import cov_nearest
+from scipy.optimize import curve_fit
+from statsmodels.stats.moment_helpers import cov2corr, corr2cov
+from scipy.stats import gaussian_kde
+
 from tqdm import tqdm
 
 from kinisi import __version__
@@ -93,6 +97,7 @@ class Diffusion:
         self,
         start_dt: sc.Variable,
         cond_max: float = 1e16,
+        recondition: bool = False,
         fit_intercept: bool = True,
         n_samples: int = 1000,
         n_walkers: int = 32,
@@ -119,6 +124,7 @@ class Diffusion:
 
         self._start_dt = start_dt
         self._cond_max = cond_max
+        self._recondition = recondition
 
         self.diff_regime = np.argwhere(self.dg['da'].coords['time interval'] >= self._start_dt)[0][0]
         self._covariance_matrix = self.compute_covariance_matrix()
@@ -156,10 +162,12 @@ class Diffusion:
             """
             return -log_likelihood(*args)
 
-        if fit_intercept:
-            max_likelihood = minimize(nll, np.array([slope, intercept])).x
-        else:
-            max_likelihood = minimize(nll, np.array([slope])).x
+        # if fit_intercept:
+        #     max_likelihood = minimize(nll, np.array([slope, intercept])).x
+        # else:
+        #     max_likelihood = minimize(nll, np.array([slope])).x
+
+        max_likelihood = np.array([slope, intercept])
 
         pos = max_likelihood + max_likelihood * 1e-3 * np.random.randn(n_walkers, max_likelihood.size)
         sampler = EnsembleSampler(*pos.shape, log_likelihood)
@@ -169,7 +177,6 @@ class Diffusion:
         #     sampler._random = random_state
         sampler.run_mcmc(pos, n_samples + n_burn, progress=progress, progress_kwargs={'desc': 'Likelihood Sampling'})
         self._flatchain = sampler.get_chain(flat=True, thin=n_thin, discard=n_burn)
-
         self.gradient = Samples(
             self._flatchain[:, 0], unit=(self.dg['da'].unit / self.dg['da'].coords['time interval'].unit)
         )
@@ -257,11 +264,18 @@ class Diffusion:
                 value = ratio * self.dg['da'].data.variances[i]
                 cov[i, j] = value
                 cov[j, i] = np.copy(cov[i, j])
-        return sc.array(
+        if self._recondition:
+            return sc.array(
             dims=['time_interval1', 'time_interval2'],
-            values=cov_nearest(minimum_eigenvalue_method(cov[self.diff_regime :, self.diff_regime :], self._cond_max)),
+            values=cov_nearest(eigenvalue_clipping(cov_nearest(cov[self.diff_regime :, self.diff_regime :]))),
             unit=self.dg['da'].unit ** 2,
         )
+        else:
+            return sc.array(
+                dims=['time_interval1', 'time_interval2'],
+                values=cov_nearest(minimum_eigenvalue_method(cov[self.diff_regime :, self.diff_regime :], self._cond_max)),
+                unit=self.dg['da'].unit ** 2,
+            )
 
     def posterior_predictive(
         self, n_posterior_samples: int = None, n_predictive_samples: int = 256, progress: bool = True
@@ -335,6 +349,61 @@ def minimum_eigenvalue_method(cov: np.ndarray, cond_max=1e16) -> np.ndarray:
     new_eigenvalues[np.where(new_eigenvalues < T)] = T
     new_cov = np.real(eigenthings.eigenvectors @ np.diag(new_eigenvalues) @ eigenthings.eigenvectors.T)
     return new_cov
+
+
+def eigenvalue_clipping(cov: np.ndarray) -> np.ndarray:
+    """
+    Eigenvalue clipping method for matrix reconditioning.
+
+    :param cov: Covariance matrix to recondition.
+
+    :return: Reconditioned covariance matrix.
+    """
+    corr = cov2corr(cov)
+    eigenthings = np.linalg.eig(corr)
+    eigenvalues = eigenthings.eigenvalues.real
+
+    kde = gaussian_kde(eigenvalues)
+    x = np.linspace(eigenvalues.min() - 0.5 * eigenvalues.max(), eigenvalues.max() + 0.5 * eigenvalues.max(), 10000)
+
+    popt, _ = curve_fit(marchenkopastur, x, kde.pdf(x), bounds=([0, 0], [np.inf, np.inf]), p0=[0.5, 1.0])
+
+    lambda_plus = (1 + popt[0] ** 0.5) ** 2
+    lambda_minus = (1 - popt[0] ** 0.5) ** 2
+
+    lambda_minus = np.max(eigenvalues[eigenvalues < lambda_plus])
+    new_eigenvalues = np.copy(eigenvalues)
+    new_eigenvalues[new_eigenvalues < lambda_plus] = lambda_minus
+
+    new_corr = (eigenthings.eigenvectors @ np.diag(new_eigenvalues) @ np.linalg.inv(eigenthings.eigenvectors)).real
+    S = np.diag(1 / (np.diag(new_corr)) ** 0.5)
+    new_corr = S @ new_corr @ S.T
+
+    new_cov = corr2cov(new_corr, np.sqrt(cov.diagonal()))
+    return new_cov
+
+
+def marchenkopastur(x: np.ndarray, lambda_: float, sigma: float) -> np.ndarray:
+    """
+    Marchenko-Pastur distribution
+    
+    :param x: points at which to evaluate the distribution
+    :param lambda_: lambda parameter
+    :param sigma: standard deviation of the distribution
+    """
+    def m0(a: np.ndarray) -> np.ndarray:
+        """
+        Element wise maximum of (a, 0)
+
+        :param a: input array
+        :return: element wise maximum of (a, 0)
+        """
+        return np.maximum(a, np.zeros_like(a))
+    
+    lambda_plus = (1 + lambda_ ** 0.5) ** 2
+    lambda_minus = (1 - lambda_ ** 0.5) ** 2
+
+    return np.sqrt(m0(lambda_plus  - x) *  m0(x- lambda_minus)) / (2 * np.pi * sigma ** 2 * lambda_ * x)
 
 
 def _straight_line(abscissa: np.ndarray, gradient: float, intercept: float = 0.0) -> np.ndarray:

@@ -223,6 +223,7 @@ class DiffusionAnalyzer(Analyzer):
         self,
         start_dt: VariableLikeType,
         cond_max: float = 1e16,
+        recondition: bool = False,
         fit_intercept: bool = True,
         n_samples: int = 1000,
         n_walkers: int = 32,
@@ -248,6 +249,7 @@ class DiffusionAnalyzer(Analyzer):
         self.diff._diffusion(
             start_dt,
             cond_max=cond_max,
+            recondition=recondition,
             fit_intercept=fit_intercept,
             n_samples=n_samples,
             n_walkers=n_walkers,
