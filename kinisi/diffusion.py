@@ -153,18 +153,6 @@ class Diffusion:
         if slope < 0:
             slope = 1e-20
 
-        def nll(*args) -> float:
-            """
-            General purpose negative log-likelihood.
-            :return: Negative log-likelihood
-            """
-            return -log_likelihood(*args)
-
-        # if fit_intercept:
-        #     max_likelihood = minimize(nll, np.array([slope, intercept])).x
-        # else:
-        #     max_likelihood = minimize(nll, np.array([slope])).x
-
         max_likelihood = np.array([slope, intercept])
 
         pos = max_likelihood + max_likelihood * 1e-3 * np.random.randn(n_walkers, max_likelihood.size)
