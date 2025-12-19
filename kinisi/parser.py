@@ -116,7 +116,9 @@ class Parser:
         self.dimensionality = drift_corrected.sizes['dimension'] * sc.units.dimensionless
 
         self.displacements = drift_corrected['particle', indices]
-        self._volume = np.prod(latt.values[0].diagonal()) * latt.unit**3
+        self._volume = (
+            np.mean([np.abs(np.linalg.det(latt.values[i])) for i in range(latt.sizes['time'])]) * latt.unit**3
+        )
 
     def _to_datagroup(self, hdf5=True) -> sc.DataGroup:
         """
