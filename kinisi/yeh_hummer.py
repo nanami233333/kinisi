@@ -185,4 +185,3 @@ class YehHummer(FittingBase):
             return Samples(np.array(viscosities), unit=sc.Unit('Pa*s'))
         else:
             return self._slope_to_viscosity(slope_data.value)
-
