@@ -12,14 +12,24 @@ from kinisi.yeh_hummer import YehHummer
 class TestYehHummer:
     """Tests for the YehHummer class."""
 
-    def test_yeh_hummer_linear(self):
-        """Test the linear Yeh-Hummer function."""
-        inv_L = np.array([0.04, 0.05, 0.06])
+    def test_yeh_hummer_function(self):
+        """Test the Yeh-Hummer fitting function."""
+        box_lengths = np.array([20.0, 30.0, 40.0])
+        D_values = np.array([5.0e-5, 5.2e-5, 5.4e-5])
+        D_errors = np.array([0.1e-5, 0.1e-5, 0.1e-5])
+
+        td = sc.DataArray(
+            data=sc.array(dims=['system'], values=D_values, variances=D_errors**2, unit='cm^2/s'),
+            coords={'box_length': sc.Variable(dims=['system'], values=box_lengths, unit='angstrom')},
+        )
+
+        yh = YehHummer(td, temperature=sc.scalar(298, unit='K'))
+
+        # Test the internal function: D_PBC = D_0 - slope / L
         D_0 = 6.0e-5
         slope = 1.0e-6
-
-        result = YehHummer.yeh_hummer_linear(inv_L, D_0, slope)
-        expected = D_0 - slope * inv_L
+        result = yh._yeh_hummer_function(box_lengths, D_0, slope)
+        expected = D_0 - slope / box_lengths
 
         np.testing.assert_array_almost_equal(result, expected)
 
@@ -119,7 +129,9 @@ class TestYehHummer:
 
         # Test property accessors
         assert yh.D_infinite == yh.data_group['D_0']
-        assert yh.shear_viscosity == yh.data_group['viscosity']
+        # slope is stored in data_group, viscosity is computed from slope
+        assert 'slope' in yh.data_group.keys()
+        assert yh.shear_viscosity.unit == sc.Unit('Pa*s')
 
         # Test that the object has string representations
         assert len(str(yh)) > 0

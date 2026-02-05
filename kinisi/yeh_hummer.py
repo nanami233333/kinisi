@@ -66,6 +66,8 @@ class YehHummer(FittingBase):
             D_bounds = (D_max * 0.8 * diffusion.unit, D_max * 2.0 * diffusion.unit)
             visc_lower, visc_upper = 1e-5 * sc.Unit('Pa*s'), 1e-1 * sc.Unit('Pa*s')
         else:
+            if len(bounds) != 2:
+                raise ValueError('Bounds must be a tuple of length 2: (D_0_bounds, viscosity_bounds)')
             D_bounds = (bounds[0][0].to(unit=parameter_units[0]), bounds[0][1].to(unit=parameter_units[0]))
             visc_lower, visc_upper = bounds[1]
 
