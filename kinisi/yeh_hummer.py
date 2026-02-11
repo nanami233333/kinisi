@@ -12,10 +12,11 @@ Based on: Yeh & Hummer, J. Phys. Chem. B 2004, 108, 15873-15879
 import numpy as np
 import scipp as sc
 import scipp.constants as const
-from scipy.optimize import curve_fit
+from scipy.optimize import curve_fit, minimize
 
 from kinisi import __version__
 from kinisi.fitting import FittingBase
+from kinisi.samples import Samples
 
 from .due import Doi, due
 
@@ -34,9 +35,12 @@ class YehHummer(FittingBase):
     The Yeh-Hummer correction formula is:
     D_PBC = D_0 - (k_B * T * xi) / (6 * pi * eta * L)
 
+    Internally, fitting is performed in (D_0, slope) space where the model is linear,
+    then slope is converted to viscosity for output.
+
     :param diffusion: sc.DataArray with diffusion coefficients and box_length coordinate
     :param temperature: Temperature (will be extracted from coords if not provided)
-    :param bounds: Optional bounds for [D_0, viscosity] parameters
+    :param bounds: Optional bounds for [D_0, viscosity] parameters (viscosity in Pa*s)
     """
 
     def __init__(self, diffusion, temperature: sc.Variable, bounds=None):
@@ -48,69 +52,56 @@ class YehHummer(FittingBase):
 
         # Constants
         self.xi_cubic = 2.837297  # Ewald constant for cubic boxes
-        # Set up parameters for YehHummer fitting
-        parameter_names = ('D_0', 'viscosity')
-        parameter_units = (diffusion.unit, sc.Unit('Pa*s'))
 
-        # Set default bounds if not provided
+        # Slope has units of [diffusion] * [length] = cm^2/s * Å
+        self._slope_unit = diffusion.unit * self.box_lengths.unit
+
+        # Set up parameters for fitting - use (D_0, slope) for linear model
+        parameter_names = ('D_0', 'slope')
+        parameter_units = (diffusion.unit, self._slope_unit)
+
+        # Compute bounds: use provided or defaults
         if bounds is None:
-            # Auto-generate reasonable bounds
             D_max = np.max(diffusion.values)
-            bounds = (
-                (D_max * 0.8 * diffusion.unit, D_max * 2.0 * diffusion.unit),
-                (1e-5 * sc.Unit('Pa*s'), 1e-1 * sc.Unit('Pa*s')),
-            )
+            D_bounds = (D_max * 0.8 * diffusion.unit, D_max * 2.0 * diffusion.unit)
+            visc_lower, visc_upper = 1e-5 * sc.Unit('Pa*s'), 1e-1 * sc.Unit('Pa*s')
+        else:
+            if len(bounds) != 2:
+                raise ValueError('Bounds must be a tuple of length 2: (D_0_bounds, viscosity_bounds)')
+            D_bounds = (bounds[0][0].to(unit=parameter_units[0]), bounds[0][1].to(unit=parameter_units[0]))
+            visc_lower, visc_upper = bounds[1]
 
-        # Initialize base class with custom function
+        # Higher viscosity = lower slope, so bounds are inverted
+        slope_bounds = (
+            self.viscosity_to_slope(visc_upper) * self._slope_unit,
+            self.viscosity_to_slope(visc_lower) * self._slope_unit,
+        )
+
+        # Initialize base class with linear function
         super().__init__(
             data=diffusion,
             function=self._yeh_hummer_function,
             parameter_names=parameter_names,
             parameter_units=parameter_units,
-            bounds=bounds,
+            bounds=[D_bounds, slope_bounds],
             coordinate_name='box_length',
-        )
-
-        # Convert bounds to values for optimization (for backward compatibility)
-        self.bounds_values = tuple(
-            [
-                (b[0].to(unit=u).value, b[1].to(unit=u).value)
-                for b, u in zip(self.bounds, self.parameter_units, strict=False)
-            ]
         )
 
     def _yeh_hummer_function(
         self,
         box_lengths: np.ndarray,
         D_0: float,
-        viscosity: float,
+        slope: float,
     ) -> np.ndarray:
         """
-        Yeh-Hummer function for finitie-size correction fit.
+        Yeh-Hummer function for finite-size correction fit (linear form).
+        D_PBC = D_0 - slope / L
 
-        :param box_lengths: Array of box lengths / Å
+        :param box_lengths: Array of box lengths / Angstrom
         :param D_0: Infinite-system diffusion coefficient
-        :param viscosity: Shear viscosity
+        :param slope: i.e., (k_B * T * xi) / (6 * pi * eta)
         """
-        # Handle both scalar and array inputs
-        box_lengths = np.asarray(box_lengths)
-        viscosity = np.asarray(viscosity)
-
-        inv_L = 1.0 / box_lengths
-
-        if viscosity.ndim == 0:
-            eta_with_unit = viscosity * self.parameter_units[1]
-            slope = self.viscosity_to_slope(eta_with_unit)
-        else:
-            # viscosity as an array (from MCMC samples)
-            slopes = []
-            for visc_val in viscosity:
-                eta_with_unit = visc_val * self.parameter_units[1]
-                slope = self.viscosity_to_slope(eta_with_unit)
-                slopes.append(slope)
-            slope = np.array(slopes)
-
-        return self.yeh_hummer_linear(inv_L, D_0, slope)
+        return D_0 - slope / np.asarray(box_lengths)
 
     def _prepare_data_for_fit(self):
         """Prepare data in correct format for fitting."""
@@ -131,10 +122,8 @@ class YehHummer(FittingBase):
 
         k_B_T = sc.to_unit(const.Boltzmann * self.temperature, 'J')
 
-        # slope has units of [diffusion] / [1/length] = [diffusion] * [length]
-        # diffusion is cm^2/s, box_lengths is Å, so slope * diffusion.unit / (1/box_lengths.unit)
-        # This gives us (cm^2/s) / (1/Å) = cm^2/s * Å = cm^2 * Å / s
-        slope_with_units = slope * self.diffusion.unit / (1 / self.box_lengths.unit)
+        # slope has units of [diffusion] * [length]
+        slope_with_units = slope * self._slope_unit
         slope_SI = sc.to_unit(slope_with_units, 'm^3/s')
 
         eta = (k_B_T * self.xi_cubic) / (6 * np.pi * slope_SI)
@@ -167,13 +156,8 @@ class YehHummer(FittingBase):
         D_0_init = popt[0]
         slope_init = popt[1]
 
-        # Convert slope to viscosity
-        eta_init = self._slope_to_viscosity(slope_init).value
-
         # Use these as initial parameters for optimization
-        x0 = [D_0_init, eta_init]
-
-        from scipy.optimize import minimize
+        x0 = [D_0_init, slope_init]
 
         # Convert bounds to format expected by scipy
         bounds_scipy = [(b[0].value, b[1].value) for b in self.bounds]
@@ -181,30 +165,23 @@ class YehHummer(FittingBase):
 
         # Store results
         self.data_group['D_0'] = result.x[0] * self.parameter_units[0]
-        self.data_group['viscosity'] = result.x[1] * self.parameter_units[1]
+        self.data_group['slope'] = result.x[1] * self.parameter_units[1]
 
     @property
-    def D_infinite(self):
+    def D_infinite(self) -> sc.Variable | Samples:
         """Return infinite-system diffusion coefficient."""
         return self.data_group['D_0']
 
     @property
-    def shear_viscosity(self):
-        """Return estimated shear viscosity."""
-        return self.data_group['viscosity']
-
-    @staticmethod
-    def yeh_hummer_linear(inv_L, D_0, slope):
-        """
-        Linear form of Yeh-Hummer equation for fitting.
-
-        D_PBC = D_0 - slope * (1/L)
-
-        where slope = (k_B * T * xi) / (6 * pi * eta)
-
-        :param inv_L: Inverse box lengths (1/L)
-        :param D_0: Infinite-system diffusion coefficient
-        :param slope: Slope containing viscosity information
-        :return: D_PBC values
-        """
-        return D_0 - slope * inv_L
+    def shear_viscosity(self) -> sc.Variable | Samples:
+        """Return estimated shear viscosity (converted from slope samples)."""
+        slope_data = self.data_group['slope']
+        if isinstance(slope_data, Samples):
+            # eta = (k_B * T * xi) / (6 * pi * slope)
+            k_B_T = sc.to_unit(const.Boltzmann * self.temperature, 'J').value
+            slope_to_SI = sc.to_unit(1.0 * self._slope_unit, 'm^3/s').value
+            slopes_SI = slope_data.values * slope_to_SI
+            viscosities = (k_B_T * self.xi_cubic) / (6 * np.pi * slopes_SI)
+            return Samples(viscosities, unit=sc.Unit('Pa*s'))
+        else:
+            return self._slope_to_viscosity(slope_data.value)
