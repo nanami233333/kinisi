@@ -12,7 +12,7 @@ Based on: Yeh & Hummer, J. Phys. Chem. B 2004, 108, 15873-15879
 import numpy as np
 import scipp as sc
 import scipp.constants as const
-from scipy.optimize import curve_fit
+from scipy.optimize import curve_fit, minimize
 
 from kinisi import __version__
 from kinisi.fitting import FittingBase
@@ -99,7 +99,7 @@ class YehHummer(FittingBase):
 
         :param box_lengths: Array of box lengths / Angstrom
         :param D_0: Infinite-system diffusion coefficient
-        :param slope: Slope = (k_B * T * xi) / (6 * pi * eta)
+        :param slope: i.e., (k_B * T * xi) / (6 * pi * eta)
         """
         return D_0 - slope / np.asarray(box_lengths)
 
@@ -159,8 +159,6 @@ class YehHummer(FittingBase):
         # Use these as initial parameters for optimization
         x0 = [D_0_init, slope_init]
 
-        from scipy.optimize import minimize
-
         # Convert bounds to format expected by scipy
         bounds_scipy = [(b[0].value, b[1].value) for b in self.bounds]
         result = minimize(self.nll, x0, bounds=bounds_scipy, method='L-BFGS-B')
@@ -170,7 +168,7 @@ class YehHummer(FittingBase):
         self.data_group['slope'] = result.x[1] * self.parameter_units[1]
 
     @property
-    def D_infinite(self):
+    def D_infinite(self) -> sc.Variable | Samples:
         """Return infinite-system diffusion coefficient."""
         return self.data_group['D_0']
 
@@ -179,11 +177,11 @@ class YehHummer(FittingBase):
         """Return estimated shear viscosity (converted from slope samples)."""
         slope_data = self.data_group['slope']
         if isinstance(slope_data, Samples):
-            # Convert each slope sample to viscosity
-            viscosities = []
-            for s in slope_data.values:
-                eta = self._slope_to_viscosity(s)
-                viscosities.append(eta.value)
-            return Samples(np.array(viscosities), unit=sc.Unit('Pa*s'))
+            # eta = (k_B * T * xi) / (6 * pi * slope)
+            k_B_T = sc.to_unit(const.Boltzmann * self.temperature, 'J').value
+            slope_to_SI = sc.to_unit(1.0 * self._slope_unit, 'm^3/s').value
+            slopes_SI = slope_data.values * slope_to_SI
+            viscosities = (k_B_T * self.xi_cubic) / (6 * np.pi * slopes_SI)
+            return Samples(viscosities, unit=sc.Unit('Pa*s'))
         else:
             return self._slope_to_viscosity(slope_data.value)

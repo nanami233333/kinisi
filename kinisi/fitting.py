@@ -112,10 +112,6 @@ class FittingBase:
         x_values = self.get_independent_variable()
         model = self.function(x_values, *parameters)
 
-        # Handle invalid model values (e.g., from VTF when T0 >= T)
-        if np.any(~np.isfinite(model)) or np.any(model <= 0):
-            return -np.inf
-
         covariance_matrix = np.diag(self.data.variances)
         y_values = self.data.values
 
