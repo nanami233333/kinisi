@@ -34,3 +34,4 @@ Here we will try and list publications that have used `kinisi` (if you would lik
 30. Ito, D., Momma, T., & Tateyama, Y., *Chem. Mater.*, **XXX**, XXX-XXX, 2026. doi: [10.1021/acs.chemmater.5c02436](https://doi.org/10.1021/acs.chemmater.5c02436). 
 31. Lavrinenko, A. K., Famprikis, T., Landgraf, V., Heringa, J. R., Smeets, S., Azizi, V., Ciarella, S., Wagemaker, M., & Vasileiadis, A., *ChemRvix*, 2026. doi:[10.26434/chemrxiv-2026-5d9nq-v2](https://doi.org/10.26434/chemrxiv.10001531/v1).
 32. Nishimura, S.-I., Suzuki, H., Park, S., Hasegawa, K., & Yamada, A., *ChemRvix*, 2026. doi:[10.26434/chemrxiv-2026-5d9nq-v2](https://doi.org/10.26434/chemrxiv.10001514/v1).
+33. Lin, M., Lambrick, S. M, & Jardine, A. J., *Phys. Rev. B*, **113**, 085418, 2026. doi:[10.1103/rys7-5t69](https://doi.org/10.1103/rys7-5t69)
