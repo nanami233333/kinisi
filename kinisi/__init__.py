@@ -1,4 +1,4 @@
-__version__ = '2.0.4'
+__version__ = '2.0.5'
 
 from .due import Doi, due
 
