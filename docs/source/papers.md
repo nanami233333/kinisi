@@ -29,7 +29,7 @@ Here we will try and list publications that have used `kinisi` (if you would lik
 25. Leifield, J. Parsons, A. C., Morscher, A., Martinez de Irujo-Labalde, X., Kraft, M. A., Soulas, O. G., Samanta, B., Zielasko, W., Yadav, N. Jalarvo, N., Rodrigues, B. V. M., Slabon, A., Adelhelm, P., Hansen, M. R., Scanlon, D. O., Zeier, W. G., & Squires, A. G., *ChemRvix*, 2025. doi:[10.26434/chemrxiv-2025-27tgk](https://doi.org/10.26434/chemrxiv-2025-27tgk).
 26. Goldmann, B. A., Rosenbach, C., Evans, H. A., Helm, B., Wankmiller, B., Maus, O., Suard, E., Nazar, L. F., Hansen, M. R., Morgan, B. J., Islam, M. S., Zeier, W. G., *Chem Mater.*, **37**, 9858–9868, 2025. doi:[10.1021/acs.chemmater.5c02303](https://doi.org/10.1021/acs.chemmater.5c02303).
 27. du Toit, D. T.. Optimising machine-learning interatomic potentials for the study of disordered functional materials, *Ph.D. Thesis, University of Oxford*, 2025. eprint: [dnc580n38t](https://ora.ox.ac.uk/objects/uuid:f1758549-6453-43cd-8a0d-ae886f07fdac/files/dnc580n38t).
-28. Majumdar, S., Roy, S., Jun, K., Steiner, M., & Gomez-Bombarelli, R., *ChemRvix*, 2025. doi:[10.26434/chemrxiv-2025-rt6s2](https://doi.org/10.26434/chemrxiv-2025-rt6s2).
+28. Majumdar, S., Roy, S., Jun, K., Steiner, M., & Gomez-Bombarelli, R., *Chem. Mater*, XXXX, 2026. doi:[10.1021/acs.chemmater.5c02940](https://doi.org/10.1021/acs.chemmater.5c02940).
 29. Baer, C. M. I., Shantsila, R. Figiel, L., & Karasulu, B., *ChemRvix*, 2026. doi:[10.26434/chemrxiv-2026-5d9nq-v2](https://doi.org/10.26434/chemrxiv-2026-5d9nq-v2). 
 30. Ito, D., Momma, T., & Tateyama, Y., *Chem. Mater.*, **XXX**, XXX-XXX, 2026. doi: [10.1021/acs.chemmater.5c02436](https://doi.org/10.1021/acs.chemmater.5c02436). 
 31. Lavrinenko, A. K., Famprikis, T., Landgraf, V., Heringa, J. R., Smeets, S., Azizi, V., Ciarella, S., Wagemaker, M., & Vasileiadis, A., *ChemRvix*, 2026. doi:[10.26434/chemrxiv-2026-5d9nq-v2](https://doi.org/10.26434/chemrxiv.10001531/v1).
@@ -40,3 +40,4 @@ Here we will try and list publications that have used `kinisi` (if you would lik
 36. Baer, C. Shantsila, R. Figiel, L. Karasulu, B., *ChemRvix*, 2026. doi:[10.26434/chemrxiv-2026-5d9nq-v2](https://doi.org/10.26434/chemrxiv-2026-5d9nq-v2).
 37. Kabakibo, D. S., F. Therrien, Y. Bengio, M. Côté, H. Guo, H. Shin, & Hernandez-Garcia, A., 2026. [*arXiv*:2602.28012](https://arxiv.org/abs/2603.28012).
 38. Shantsila, R., C. Baer, A. Bartók-Pártay, & B. Karasulu, *ChemRvix*, 2026. doi:[10.26434/chemrxiv.15001544/v1](https://doi.org/10.26434/chemrxiv.15001544/v1).
+39. Coles, S. W., Hajibabaei, A., Kapil, V., Advincula, X. R. Schran, C. Cox, S. J., & Michaelides, A. *Sci. Adv.*, **12**, eadz6392, 2026. doi:[10.1126/sciadv.adz6392](https://doi.org/10.1126/sciadv.adz6392)
