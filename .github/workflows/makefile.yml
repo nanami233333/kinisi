@@ -8,20 +8,46 @@ on:
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: configure
-      run: ./configure
+      - name: Set up Python 3.9
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.9'
 
-    - name: Install dependencies
-      run: make
+      - name: Upgrade pip
+        run: python3.9 -m pip install --user --upgrade pip
 
-    - name: Run check
-      run: make check
+      - name: Install package
+        run: python3.9 -m pip install --user -e .
 
-    - name: Run distcheck
-      run: make distcheck
+      - name: Install docs dependencies
+        run: |
+          if [ -f docs/requirements.txt ]; then
+            python3.9 -m pip install --user -r docs/requirements.txt
+          fi
+          if [ -f docs/requirements-dev.txt ]; then
+            python3.9 -m pip install --user -r docs/requirements-dev.txt
+          fi
+          if [ -f requirements.txt ]; then
+            python3.9 -m pip install --user -r requirements.txt
+          fi
+
+      - name: Configure
+        run: |
+          if [ -x ./configure ]; then
+            ./configure
+          fi
+
+      - name: Build docs
+        working-directory: kinisi/docs
+        run: make
+
+      - name: Run check
+        run: make check
+
+      - name: Run distcheck
+        run: make distcheck
