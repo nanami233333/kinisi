@@ -46,7 +46,7 @@ jobs:
             texlive-luatex \
             texlive-plain-generic
 
-      - name: Install Python dependencies
+          - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip setuptools wheel
 
@@ -70,7 +70,16 @@ jobs:
             ipython \
             ipykernel \
             jupyter \
+            nbconvert \
+            pandoc \
             matplotlib \
+            numpy \
+            scipy \
+            pandas \
+            seaborn \
+            h5py \
+            tqdm \
+            corner \
             graphviz
 
       - name: Build docs PDF
