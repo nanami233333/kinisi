@@ -27,15 +27,32 @@ jobs:
 
       - uses: pre-commit/action@v3.0.1
 
-      - name: Install dependencies
+      - name: Install system dependencies for PDF docs
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            make \
+            latexmk \
+            texlive-latex-recommended \
+            texlive-latex-extra \
+            texlive-fonts-recommended
+
+      - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
           pip install '.[dev]'
           pip install pytest pytest-cov
+          pip install sphinx
 
-      - name: Build docs
+      - name: Build docs PDF
         working-directory: docs
-        run: make
+        run: make latexpdf
+
+      - name: Upload docs PDF
+        uses: actions/upload-artifact@v4
+        with:
+          name: kinisi-docs-pdf-python-${{ matrix.python-version }}
+          path: docs/_build/latex/*.pdf
 
       - name: Run check
         run: make check
