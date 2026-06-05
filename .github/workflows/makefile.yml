@@ -34,6 +34,8 @@ jobs:
             latexmk \
             pandoc \
             graphviz \
+            imagemagick \
+            librsvg2-bin \
             texlive-latex-recommended \
             texlive-latex-extra \
             texlive-fonts-recommended \
