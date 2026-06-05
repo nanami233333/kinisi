@@ -46,11 +46,11 @@ jobs:
             texlive-luatex \
             texlive-plain-generic
 
-          - name: Install Python dependencies
+      - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip setuptools wheel
 
-          pip install '.[dev]'
+          pip install '.[dev,docs]'
 
           pip install \
             pytest \
