@@ -42,7 +42,11 @@ jobs:
             texlive-science \
             texlive-pictures \
             texlive-xetex \
+            texlive-xetex \
             texlive-luatex \
+            fonts-dejavu \
+            fonts-dejavu-core \
+            fonts-dejavu-extra \
             texlive-plain-generic
 
       - name: Install Python dependencies
