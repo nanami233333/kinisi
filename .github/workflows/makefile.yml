@@ -34,6 +34,7 @@ jobs:
             pandoc \
             graphviz \
             imagemagick \
+            xindy \
             librsvg2-bin \
             texlive-latex-recommended \
             texlive-latex-extra \
